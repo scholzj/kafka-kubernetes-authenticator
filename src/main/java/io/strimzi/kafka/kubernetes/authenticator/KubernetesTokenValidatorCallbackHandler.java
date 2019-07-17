@@ -1,8 +1,21 @@
 package io.strimzi.kafka.kubernetes.authenticator;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.fabric8.kubernetes.api.model.authentication.TokenReview;
+import io.fabric8.kubernetes.api.model.authentication.TokenReviewBuilder;
+import io.fabric8.kubernetes.client.DefaultKubernetesClient;
+import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.dsl.base.OperationSupport;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
 import org.apache.kafka.common.security.auth.AuthenticateCallbackHandler;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerValidatorCallback;
+import org.apache.kafka.common.security.oauthbearer.internals.unsecured.OAuthBearerValidationResult;
 import org.apache.kafka.common.utils.Time;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,9 +80,74 @@ public class KubernetesTokenValidatorCallbackHandler implements AuthenticateCall
 
         if (Time.SYSTEM.milliseconds() > token.lifetimeMs())    {
             log.warn("The token expired at {}", token.lifetimeMs());
-            callback.error("The token is expired", null, "expired_token");
+            callback.error("expired_token", null, null);
         }
 
-        callback.token(token);
+        validateToken(token.value(), callback);
+
+        if (callback.errorStatus() == null) {
+            // No errors during the validation
+            // We can set the token to indicate success
+            callback.token(token);
+        }
+    }
+
+    private void validateToken(String token, OAuthBearerValidatorCallback callback) throws IOException {
+        try {
+            KubernetesClient client = new DefaultKubernetesClient();
+            OkHttpClient okClient = client.adapt(OkHttpClient.class);
+
+            TokenReview tokenReview = new TokenReviewBuilder()
+                    .withNewSpec()
+                    .withNewToken(token)
+                    .endSpec()
+                    .build();
+
+            RequestBody body = RequestBody.create(OperationSupport.JSON, new ObjectMapper().writeValueAsString(tokenReview));
+
+            Response response = okClient.newCall(new Request.Builder().post(body).url(client.getMasterUrl().toString() + "apis/" + tokenReview.getApiVersion()
+                    + "/tokenreviews").build()).execute();
+            ResponseBody responseBody = response.body();
+
+            if (response.code() == 201
+                    && responseBody != null) {
+                String responseBodyString = responseBody.string();
+
+                log.warn("Received TokenReview repsonse: {}", responseBodyString);
+                TokenReview review = new ObjectMapper().readValue(responseBodyString, TokenReview.class);
+
+                if (review.getStatus() != null
+                        && (review.getStatus().getAuthenticated() == null || !review.getStatus().getAuthenticated())) {
+                    if (review.getStatus() != null
+                            && review.getStatus().getError() != null) {
+                        log.warn("Token is not authenticated: {}", review.getStatus().getError());
+                    } else {
+                        log.warn("Token is not authenticated");
+                    }
+
+                    callback.error("invalid_token", null, null);
+                } else if (review.getStatus() != null
+                        && review.getStatus().getAuthenticated() != null
+                        && review.getStatus().getAuthenticated()) {
+                    log.warn("Token is authenticated as {}", review.getStatus().getUser());
+                } else {
+                    log.warn("Failed to parse TokenReview response.");
+                    callback.error("invalid_token", null, null);
+                }
+
+                response.close();
+            } else {
+                log.warn("Failed to review the token. TokenReview returned HTTP {}.", response.code());
+                response.close();
+                callback.error("invalid_token", null, null);
+                throw new IOException("Failed to review the token. TokenReview returned HTTP " + response.code());
+            }
+        } catch (JsonProcessingException e) {
+            log.warn("Failed to review the token: {}", e);
+            callback.error("invalid_token", null, null);
+            throw new IOException(e);
+        }
+
+
     }
 }
