@@ -61,9 +61,9 @@
     </dependencyManagement>
 
     <modules>
-        <module>common</module>
-        <module>client</module>
-        <module>server</module>
+        <module>authenticator-common</module>
+        <module>authenticator-client</module>
+        <module>authenticator-server</module>
         <module>authorizer</module>
     </modules>
 </project>
