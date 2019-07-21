@@ -15,7 +15,6 @@ import okhttp3.ResponseBody;
 import org.apache.kafka.common.security.auth.AuthenticateCallbackHandler;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerValidatorCallback;
-import org.apache.kafka.common.security.oauthbearer.internals.unsecured.OAuthBearerValidationResult;
 import org.apache.kafka.common.utils.Time;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,16 +36,6 @@ public class KubernetesTokenValidatorCallbackHandler implements AuthenticateCall
         if (!OAuthBearerLoginModule.OAUTHBEARER_MECHANISM.equals(saslMechanism))    {
             log.warn("Unexpected SASL mechanism: {}", saslMechanism);
             throw new IllegalArgumentException(String.format("Unexpected SASL mechanism: %s", saslMechanism));
-        }
-
-        for (Map.Entry entry : configs.entrySet()) {
-            log.warn("Kafka config option {}: {}", entry.getKey(), entry.getValue());
-        }
-
-        for (AppConfigurationEntry entry : jaasConfigEntries) {
-            for (Map.Entry entry2 : entry.getOptions().entrySet()) {
-                log.warn("Jaas config options {}: {}", entry2.getKey(), entry2.getValue());
-            }
         }
     }
 
