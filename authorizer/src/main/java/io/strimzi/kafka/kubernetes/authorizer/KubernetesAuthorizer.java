@@ -59,10 +59,13 @@ public class KubernetesAuthorizer implements Authorizer {
 
         if (KafkaPrincipal.USER_TYPE.equals(principal.getPrincipalType()) && SERVICE_ACCOUNT.matcher(principal.getName()).matches())    {
             String sa = principal.getName();
-            log.warn("Authorizing Kubernetes service account {}", sa);
+
+            if (log.isTraceEnabled()) {
+                log.trace("Authorizing Kubernetes service account {}", sa);
+            }
 
             if (superUsers.contains(sa))    {
-                log.warn("{} is supper user and can do whatever it wants", sa);
+                log.debug("{} is supper user and can do whatever it wants", sa);
                 return true;
             }
 
@@ -161,28 +164,34 @@ public class KubernetesAuthorizer implements Authorizer {
                 RequestBody body = RequestBody.create(OperationSupport.JSON, requestBodyJson);
                 String requestUrl = client.getMasterUrl().toString() + SubjectAccessReviewUtils.getUrlPath();
 
-                log.warn("Requesting SubjectAccessReview from {}: {}", requestBodyJson, requestUrl);
+                if (log.isTraceEnabled()) {
+                    log.trace("Requesting SubjectAccessReview from {}: {}", requestBodyJson, requestUrl);
+                }
+
                 Response reviewResult = httpClient.newCall(new Request.Builder().post(body).url(requestUrl).build()).execute();
                 ResponseBody reviewResultBody = reviewResult.body();
 
                 if (reviewResult.code() == 201 && reviewResultBody != null) {
                     String reviewResultJson = reviewResultBody.string();
-                    log.warn("Received SubjectAccessReview response: {}", reviewResultJson);
+
+                    if (log.isTraceEnabled()) {
+                        log.trace("Received SubjectAccessReview response: {}", reviewResultJson);
+                    }
 
                     if (SubjectAccessReviewUtils.isAllowed(reviewResultJson)) {
-                        log.warn("User {} is allowed operation {} on resource {}", sa, operation, resource);
+                        log.debug("User {} is allowed operation {} on resource {}", sa, operation, resource);
                         result = true;
                     } else {
-                        log.warn("User {} is denied operation {} on resource {}", sa, operation, resource);
+                        log.info("User {} is denied operation {} on resource {}", sa, operation, resource);
                         result = false;
                     }
                 } else {
-                    if (reviewResultBody != null) {
+                    if (reviewResultBody != null && log.isTraceEnabled()) {
                         String reviewResultJson = reviewResultBody.string();
-                        log.warn("Received SubjectAccessReview response: {}", reviewResultJson);
+                        log.trace("Received SubjectAccessReview response: {}", reviewResultJson);
                     }
 
-                    log.warn("Failed to review the access. SubjectAccessReview returned HTTP {}.", reviewResult.code());
+                    log.info("Failed to review the access. SubjectAccessReview returned HTTP {}.", reviewResult.code());
                     result = false;
                 }
 
@@ -190,11 +199,11 @@ public class KubernetesAuthorizer implements Authorizer {
                 return result;
             }
             catch (IOException e)   {
-                log.warn("Failed to process access review", e);
+                log.info("Failed to process access review", e);
                 return false;
             }
         } else {
-            log.warn("Authorizing regular user {}:{}. Will be passed to SimpleAclAuthorizer.", principal.getPrincipalType(), principal.getName());
+            log.info("Authorizing regular user {}:{}. Will be passed to SimpleAclAuthorizer.", principal.getPrincipalType(), principal.getName());
             return simpleAuthorizer.authorize(session, operation, resource);
         }
     }
@@ -236,9 +245,7 @@ public class KubernetesAuthorizer implements Authorizer {
 
     @Override
     public void configure(Map<String, ?> configs) {
-        log.warn("Configuring KubernetesAuthorizer");
-
-        // Craete Kubernetes client
+        // Craate Kubernetes client
         client = new DefaultKubernetesClient();
         namespace = client.getConfiguration().getNamespace();
         httpClient = client.adapt(OkHttpClient.class);
@@ -249,7 +256,6 @@ public class KubernetesAuthorizer implements Authorizer {
 
         String superUsersString = ((String) configs.get("super.users"));
         superUsers = Arrays.asList(superUsersString.split(";"));
-        log.warn("Found following super.users: {}", superUsersString);
 
         isConfigured = true;
     }

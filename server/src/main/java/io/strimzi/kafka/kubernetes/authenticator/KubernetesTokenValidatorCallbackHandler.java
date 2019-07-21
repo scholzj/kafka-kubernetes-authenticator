@@ -31,10 +31,7 @@ public class KubernetesTokenValidatorCallbackHandler implements AuthenticateCall
 
     @Override
     public void configure(Map<String, ?> configs, String saslMechanism, List<AppConfigurationEntry> jaasConfigEntries) {
-        log.warn("Configuring the handler for SASL mechanism: {}", saslMechanism);
-
         if (!OAuthBearerLoginModule.OAUTHBEARER_MECHANISM.equals(saslMechanism))    {
-            log.warn("Unexpected SASL mechanism: {}", saslMechanism);
             throw new IllegalArgumentException(String.format("Unexpected SASL mechanism: %s", saslMechanism));
         }
     }
@@ -56,19 +53,14 @@ public class KubernetesTokenValidatorCallbackHandler implements AuthenticateCall
     }
 
     private void handleCallback(OAuthBearerValidatorCallback callback) throws IOException {
-        log.warn("Callback {}", callback);
-        log.warn("Callback client token value {}", callback.tokenValue());
-        log.warn("Callback client token {}", callback.token());
-
         if (callback.tokenValue() == null) {
             throw new IllegalArgumentException("Callback has null token value!");
         }
 
         OAuthBearerTokenImpl token = new OAuthBearerTokenImpl(callback.tokenValue());
-        log.warn("Got client token {}", token.toString());
 
         if (Time.SYSTEM.milliseconds() > token.lifetimeMs())    {
-            log.warn("The token expired at {}", token.lifetimeMs());
+            log.trace("The token expired at {}", token.lifetimeMs());
             callback.error("expired_token", null, null);
         }
 
@@ -102,23 +94,23 @@ public class KubernetesTokenValidatorCallbackHandler implements AuthenticateCall
                     && responseBody != null) {
                 String responseBodyString = responseBody.string();
 
-                log.warn("Received TokenReview repsonse: {}", responseBodyString);
+                log.trace("Received TokenReview repsonse: {}", responseBodyString);
                 TokenReview review = new ObjectMapper().readValue(responseBodyString, TokenReview.class);
 
                 if (review.getStatus() != null
                         && (review.getStatus().getAuthenticated() == null || !review.getStatus().getAuthenticated())) {
                     if (review.getStatus() != null
                             && review.getStatus().getError() != null) {
-                        log.warn("Token is not authenticated: {}", review.getStatus().getError());
+                        log.debug("Token is not authenticated: {}", review.getStatus().getError());
                     } else {
-                        log.warn("Token is not authenticated");
+                        log.debug("Token is not authenticated");
                     }
 
                     callback.error("invalid_token", null, null);
                 } else if (review.getStatus() != null
                         && review.getStatus().getAuthenticated() != null
                         && review.getStatus().getAuthenticated()) {
-                    log.warn("Token is authenticated as {}", review.getStatus().getUser());
+                    log.debug("Token is authenticated as {}", review.getStatus().getUser());
                 } else {
                     log.warn("Failed to parse TokenReview response.");
                     callback.error("invalid_token", null, null);
