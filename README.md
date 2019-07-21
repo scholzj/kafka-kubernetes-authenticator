@@ -167,7 +167,7 @@ rules:
   - create
 ```
 
-### Trying it with Strimzi
+## Trying it with Strimzi
 
 You can try this with specially modified Strimzi images.
 First, create a namespace `myproject` which will be used for the demo:
