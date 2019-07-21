@@ -92,7 +92,7 @@ rules:
   - create
 ```
 
-### Authorization
+## Authorizer
 
 The Authorizer provided by this project is authorizing the Kafka clients based on the Kubernetes Service Accounts and Kubernetes RBAC.
 It uses the `Kafka` and `KafkaTopic` resources from the [Strimzi](https://strimzi.io) project to authorize on.
