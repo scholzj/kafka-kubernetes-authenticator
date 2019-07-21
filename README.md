@@ -3,6 +3,9 @@
 This project provides Kafka Authenticator and Authorizer which are based on Kubernetes Service Accounts and Kubernetes RBAC.
 It is using the service account tokens and the SASL OAUTHBEARER authentication mehcnaism provided by Kafka.
 
+You can watch my demo video on YouTube:
+[![Demo of a Kafka Authenticator and Authorizer based on Kubernetes ServiceAccounts and RBAC](http://img.youtube.com/vi/AF4abbVlocc/0.jpg)](http://www.youtube.com/watch?v=AF4abbVlocc "Demo of a Kafka Authenticator and Authorizer based on Kubernetes ServiceAccounts and RBAC")
+
 ## Building the project
 
 Run `mvn clean install` to build the project.
@@ -141,6 +144,9 @@ There is no resource for consumer groups or transactional IDs.
 The authorizer currently handles them in a way that if they start with the ID of the user, they will be always allowed.
 And example of the service account based username is `system:serviceaccount:mynamespace:mysa`.
 
+**The authorizer is currently only experimental and does not caching of the authorization results.
+Therefore it might have significant performance impact on the Kubernetes and Kafka clusters.**
+
 #### Required RBAC rights
 
 The Authorizer requires the RBAC rights to post Subject Access Review API calls.
@@ -159,3 +165,40 @@ rules:
   verbs:
   - create
 ```
+
+### Trying it with Strimzi
+
+You can try this with specially modified Strimzi images.
+First, create a namespace `myproject` which will be used for the demo:
+
+```sh
+kubectl create ns myproject
+```
+
+Next deploy the modified Strimzi Kafka Operator:
+
+```sh
+kubectl apply -f examples/strimzi -n myproject
+```
+
+And deploy the Kafka cluster:
+
+```sh
+kubectl apply -f examples/kafka-cluster.yaml -n myproject
+```
+
+Afterwards you can deplyo two sets of clients.
+`allowed.yaml` contain simple producer and consumer which are authorized and should work properly.
+
+```sh
+kubectl apply -f examples/allowed.yaml -n myproject
+```
+
+`denied.yaml` contain two clients which will be failing.
+One is configured with a token from a different cluster and should not pass authentication.
+The second is using a valid service account to authenticate, but should be unauthorized.
+
+```sh
+kubectl apply -f examples/denied.yaml -n myproject
+```
+
