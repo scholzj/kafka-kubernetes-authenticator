@@ -4,6 +4,7 @@ This project provides Kafka Authenticator and Authorizer which are based on Kube
 It is using the service account tokens and the SASL OAUTHBEARER authentication mehcnaism provided by Kafka.
 
 You can watch my demo video on YouTube:
+
 [![Demo of a Kafka Authenticator and Authorizer based on Kubernetes ServiceAccounts and RBAC](http://img.youtube.com/vi/AF4abbVlocc/0.jpg)](http://www.youtube.com/watch?v=AF4abbVlocc "Demo of a Kafka Authenticator and Authorizer based on Kubernetes ServiceAccounts and RBAC")
 
 ## Building the project
