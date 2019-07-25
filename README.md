@@ -112,20 +112,6 @@ The following table shows how the RBAC rights map against the Kafka ACLs.
 The match here is not perfect. 
 But might work for most regular consumers and producers.
 
-
-	Cluster		DelegationToken		Group		Topic		TransactionalId	
-Alter	Patch	Kafka	n/a	n/a	n/a	n/a	Patch	KafkaTopic	n/a	n/a
-AlterConfigs	Patch	Kafka	n/a	n/a	n/a	n/a	Patch	KafkaTopic	n/a	n/a
-ClusterAction	Patch	Kafka	n/a	n/a	n/a	n/a	Patch	KafkaTopic	n/a	n/a
-Create	Create	Kafka	n/a	n/a	n/a	n/a	Create	KafkaTopic	n/a	n/a
-Describe	List	Kafka	n/a	n/a	n/a	n/a	List	KafkaTopic	n/a	n/a
-DescribeConfigs	List	Kafka	n/a	n/a	n/a	n/a	List	KafkaTopic	n/a	n/a
-IdempotentWrite	update	Kafka	n/a	n/a	n/a	n/a	update	KafkaTopic	n/a	n/a
-Read	get	Kafka	n/a	n/a	n/a	n/a	get	KafkaTopic	n/a	n/a
-Write	update	Kafka	n/a	n/a	n/a	n/a	update	KafkaTopic	n/a	n/a
-					Groups starting with the user name will be allowed				TransactionIDs starting with the user name will be allowed	
-
-
 |                 | Cluster                 | Topic                        | Group | DelegationToken | TransactionalId |
 | --------------- | ----------------------- | ---------------------------- | ----- | --------------- | --------------- |
 | Alter           | Patch `Kafka` resource  | Patch `KafkaTopic` resource  | n/a   | n/a             | n/a             |
