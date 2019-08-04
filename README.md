@@ -26,7 +26,7 @@ This project is currently not available on Maven Central, so you cannot get it f
 
 In your client you have to configure the use of SASL and the SASL OAUTHBEARER mechanism.
 First set the `security.protocol` option to `SASL_PLAINTEXT` (or to `SASL_SSL` if you use SSL)
-Next set the `sesl.mechanism` to `OAUHTBEARER` mechanism.
+Next set the `sasl.mechanism` to `OAUHTBEARER` mechanism.
 
 SASL authentication is implemented using JAAS.
 So you have to configure the Kafka's OAuthBearer login module.
